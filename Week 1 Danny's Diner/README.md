@@ -1,78 +1,7 @@
-**Schema (PostgreSQL v13)**
-
-    CREATE SCHEMA dannys_diner;
-    SET search_path = dannys_diner;
-    
-    CREATE TABLE sales (
-      "customer_id" VARCHAR(1),
-      "order_date" DATE,
-      "product_id" INTEGER
-    );
-    
-    INSERT INTO sales
-      ("customer_id", "order_date", "product_id")
-    VALUES
-      ('A', '2021-01-01', '1'),
-      ('A', '2021-01-01', '2'),
-      ('A', '2021-01-07', '2'),
-      ('A', '2021-01-10', '3'),
-      ('A', '2021-01-11', '3'),
-      ('A', '2021-01-11', '3'),
-      ('B', '2021-01-01', '2'),
-      ('B', '2021-01-02', '2'),
-      ('B', '2021-01-04', '1'),
-      ('B', '2021-01-11', '1'),
-      ('B', '2021-01-16', '3'),
-      ('B', '2021-02-01', '3'),
-      ('C', '2021-01-01', '3'),
-      ('C', '2021-01-01', '3'),
-      ('C', '2021-01-07', '3');
-     
-    
-    CREATE TABLE menu (
-      "product_id" INTEGER,
-      "product_name" VARCHAR(5),
-      "price" INTEGER
-    );
-    
-    INSERT INTO menu
-      ("product_id", "product_name", "price")
-    VALUES
-      ('1', 'sushi', '10'),
-      ('2', 'curry', '15'),
-      ('3', 'ramen', '12');
-      
-    
-    CREATE TABLE members (
-      "customer_id" VARCHAR(1),
-      "join_date" DATE
-    );
-    
-    INSERT INTO members
-      ("customer_id", "join_date")
-    VALUES
-      ('A', '2021-01-07'),
-      ('B', '2021-01-09');
 
 ---
 
-**Query #1**
-
-    /* --------------------
-       Case Study Questions
-       --------------------*/
-    
-    -- 1. What is the total amount each customer spent at the restaurant?
-    -- 2. How many days has each customer visited the restaurant?
-    -- 3. What was the first item from the menu purchased by each customer?
-    -- 4. What is the most purchased item on the menu and how many times was it purchased by all customers?
-    -- 5. Which item was the most popular for each customer?
-    -- 6. Which item was purchased first by the customer after they became a member?
-    -- 7. Which item was purchased just before the customer became a member?
-    -- 8. What is the total items and amount spent for each member before they became a member?
-    -- 9.  If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-    -- 10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
-    
+**Query #1** 
     
     -- 1. What is the total amount each customer spent at the restaurant?
     
@@ -83,7 +12,7 @@
     group by sales.customer_id
     ORDER BY TotalSpentperCustomer DESC;
 
-| customer | totalspentpercustomer |
+| customer | TotalSpentperCustomer |
 | -------- | --------------------- |
 | A        | 76                    |
 | B        | 74                    |
@@ -93,12 +22,12 @@
 **Query #2**
 
     -- 2. How many days has each customer visited the restaurant?
-    SELECT sales.customer_id as Customer, COUNT(DISTINCT(order_date)) CantidadDiasVisito
+    SELECT sales.customer_id as Customer, COUNT(DISTINCT(order_date)) VisitsCount
     FROM sales
     GROUP BY customer_id
     ORDER BY CantidadDiasVisito DESC;
 
-| customer | cantidaddiasvisito |
+| customer | VisitsCount |
 | -------- | ------------------ |
 | B        | 6                  |
 | A        | 4                  |
@@ -116,7 +45,7 @@
     	on sales.product_id = menu.product_id
     ORDER BY customer_id, order_date ASC;
 
-| customer | firstitempurchase |
+| customer | FirstItemPurchase |
 | -------- | ----------------- |
 | A        | curry             |
 | B        | curry             |
@@ -126,14 +55,14 @@
 **Query #4**
 
     -- 4. What is the most purchased item on the menu and how many times was it purchased by all customers?
-    SELECT product_name as ProductoMasVendido, count(*) as CantidadDeVentas
+    SELECT product_name as Product, count(*) as CountSales
     FROM sales t1
     lEFT JOIN menu t2
     	ON t1.product_id = t2.product_id
     group by product_name
     LIMIT 1;
 
-| productomasvendido | cantidaddeventas |
+| Product | CountSales |
 | ------------------ | ---------------- |
 | ramen              | 8                |
 
@@ -145,7 +74,7 @@
       	SELECT   		
       		customer_id,
       		product_name,
-      		count(*) as cantidadVentas
+      		count(*) as CountSales
       	FROM sales s
       	left join menu m 
       		ON s.product_id=m.product_id
@@ -153,12 +82,12 @@
       )
     SELECT DISTINCT ON (customer_id)
       	customer_id as customer,
-        product_name as producto,
-        cantidadVentas
+        product_name as Product,
+        CountSales
     FROM producto_conteo
     ORDER BY customer_id, cantidadVentas DESC;
 
-| customer | producto | cantidadventas |
+| customer | Product | CountSales |
 | -------- | -------- | -------------- |
 | A        | ramen    | 3              |
 | B        | ramen    | 2              |
@@ -170,8 +99,8 @@
     -- 6. Which item was purchased first by the customer after they became a member?
     SELECT DISTINCT ON (s.customer_id)
     	s.customer_id as Customer,
-        s.order_date as DiaPedido,
-        me.product_name as Pedido
+        s.order_date as Date,
+        me.product_name as Order
     FROM sales s
     left join menu me
     	on s.product_id = me.product_id
@@ -180,7 +109,7 @@
     WHERE s.order_date >= mb.join_date :: date
     ORDER BY s.customer_id, s.order_date ASC;
 
-| customer | diapedido  | pedido |
+| customer | Date  | Order |
 | -------- | ---------- | ------ |
 | A        | 2021-01-07 | curry  |
 | B        | 2021-01-11 | sushi  |
@@ -191,8 +120,8 @@
     -- 7. Which item was purchased just before the customer became a member?
     SELECT DISTINCT ON (s.customer_id)
     	s.customer_id as Customer,
-        s.order_date as DiaPedido,
-        me.product_name as Pedido
+        s.order_date as Date,
+        me.product_name as Order
     FROM sales s
     left join menu me
     	on s.product_id = me.product_id
@@ -201,7 +130,7 @@
     WHERE s.order_date < mb.join_date :: date
     ORDER BY s.customer_id, s.order_date DESC;
 
-| customer | diapedido  | pedido |
+| customer | Date  | Order |
 | -------- | ---------- | ------ |
 | A        | 2021-01-01 | sushi  |
 | B        | 2021-01-04 | sushi  |
@@ -211,7 +140,7 @@
 
     -- 8. What is the total items and amount spent for each member before they became a member?
     SELECT 
-    	s.customer_id as Customer,
+    	s.customer_id as customer,
         sum(price) as TotalSpentBeforeMembership
     FROM sales s
     left join menu me
@@ -222,7 +151,7 @@
     GROUP BY s.customer_id
     ORDER BY TotalSpentBeforeMembership;
 
-| customer | totalspentbeforemembership |
+| customer | TotalSpentBeforeMembership |
 | -------- | -------------------------- |
 | A        | 25                         |
 | B        | 40                         |
@@ -248,7 +177,7 @@
     	ON s.product_id = m.product_id
     GROUP BY s.customer_id;
 
-| customer | points |
+| customer | Points |
 | -------- | ------ |
 | B        | 940    |
 | C        | 360    |
@@ -260,7 +189,7 @@
     -- 10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
     
     select 
-    	s.customer_id as Cutomer,
+    	s.customer_id as Customer,
         sum(	
           CASE 
           	WHEN order_date BETWEEN join_Date ::date  AND  (join_Date ::date + interval '7 days')
@@ -268,7 +197,7 @@
           	WHEN s.product_id = 1 THEN m.price*2*10
           	ELSE m.price*10
           END
-        ) AS PointEndJanuary
+        ) AS PointsEndJanuary
     FROM sales s
     LEFT JOIN menu m
     	ON s.product_id=m.product_id
@@ -278,11 +207,10 @@
     	AND mb.join_date IS NOT NULL
     GROUP BY s.customer_id
 
-| cutomer | pointendjanuary |
+| customer | PointsEndJanuary |
 | ------- | --------------- |
 | A       | 1370            |
 | B       | 940             |
 
 ---
 
-[View on DB Fiddle](https://www.db-fiddle.com/f/2rM8RAnq7h5LLDTzZiRWcd/138)
